@@ -1,0 +1,64 @@
+flowchart TB
+  browser(["Navegador do associado"])
+
+  subgraph FRONT["FRONT-END — tema e blocos (builders react / store / pixel)"]
+    theme["sicredi.store-theme<br/>(tema da loja)"]:::front
+    loginui["Login<br/>(login-components,<br/>oauth-provider UI)"]:::front
+    blocks["Blocos de conta e vitrine<br/>(points-balance, cashback, vale-presente,<br/>store-components, badges, ...)"]:::front
+    pixels["Pixels<br/>(cookies, pixel-my-account,<br/>pixel-pix-my-orders, hide-payment-methods)"]:::front
+  end
+
+  subgraph ADMIN["ADMIN — painel administrativo"]
+    adminapps["Telas admin<br/>(admin-audit-logs, badges,<br/>product-availability, auth-token-provider)"]:::admin
+  end
+
+  subgraph GQL["CAMADA GRAPHQL"]
+    gql["Apps graphql<br/>(points-balance-graphql, login-service,<br/>badges, product-availability, ...)"]:::back
+  end
+
+  subgraph BACK["BACK-END — serviços (builders node / dotnet)"]
+    services["Serviços de domínio<br/>(login-service, points-balance-service,<br/>vale-presente, giftcard, validate-cnpj, ...)"]:::back
+    atp["sicredi.authentication-token-provider<br/>(broker de tokens Sicredi)"]:::back
+    ppf["Conectores de pagamento PPF<br/>(pix-payment-provider, bankInvoice-payment-provider)<br/>+ pix-service / bankinvoice-service"]:::back
+  end
+
+  subgraph VTEXCORE["VTEX CORE (plataforma)"]
+    vtexid[("VTEX ID<br/>(login da plataforma)")]:::storage
+    ca[("Master Data — entidade CA<br/>isSicrediAssociate")]:::storage
+    vbase[("VBase<br/>tokens, OTP, audit_logs")]:::storage
+    checkout[("Checkout / OMS /<br/>Gateway de pagamento")]:::storage
+  end
+
+  subgraph EXT["SISTEMAS EXTERNOS"]
+    apigw["APIs Sicredi<br/>api-gw.sicredi.com.br<br/>mtls-api-parceiro.sicredi.com.br"]:::external
+    segcorp["Segcorp<br/>(identidade corporativa Sicredi)"]:::external
+    google["Google OAuth"]:::external
+  end
+
+  browser --> theme
+  browser --> loginui
+  theme --> blocks
+  theme --> pixels
+  browser --> adminapps
+  loginui --> vtexid
+  vtexid --> services
+  blocks --> gql
+  blocks --> services
+  adminapps --> gql
+  adminapps --> services
+  gql --> services
+  services --> atp
+  services --> ca
+  services --> vbase
+  atp --> apigw
+  services --> segcorp
+  services --> google
+  checkout --> ppf
+  ppf --> apigw
+  services -.->|audit logs| vbase
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

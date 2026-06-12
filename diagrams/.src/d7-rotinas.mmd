@@ -1,0 +1,42 @@
+flowchart LR
+  subgraph FRONT["FRONT — pixels (todas as páginas)"]
+    ck["sicredi.cookies"]:::front
+    pma["sicredi.pixel-my-account"]:::front
+  end
+
+  subgraph BACK["BACK — rotinas (node)"]
+    acs["sicredi.abandoned-cart-service"]:::back
+    cars["sicredi.client-association-routine-service"]:::back
+  end
+
+  subgraph BUILD["NÃO-VTEX — build de e-mails"]
+    em["sicredi.emails (framework Gulp)"]:::admin
+    emt["sicredi.emails-templates (HTMLs)"]:::admin
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    chk[("Checkout / OrderForm")]:::storage
+    mail[("Message Center<br/>(templates de e-mail)")]:::storage
+    ca[("Master Data — CA")]:::storage
+  end
+
+  subgraph EXT["EXTERNOS"]
+    dlake["Data Lake Sicredi"]:::external
+    dinamize["Dinamize (CRM)"]:::external
+  end
+
+  chk -.->|carrinho abandonado| acs
+  acs --> mail
+  acs -.->|evento configureMailTemplate| mail
+  em --> emt
+  emt -.->|publicados em| mail
+  cars --> ca
+  cars --> dlake
+  cars --> dinamize
+  ck --> chk
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

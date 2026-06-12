@@ -1,0 +1,49 @@
+flowchart LR
+  subgraph FRONT["FRONT — blocos do tema (react/store)"]
+    pb_f["sicredi.points-balance"]:::front
+    cb_f["sicredi.cashback"]:::front
+    br_f["sicredi.bonus-recompra-my-account"]:::front
+    bt_f["sicredi.buy-together"]:::front
+  end
+
+  subgraph GQL["CAMADA GRAPHQL"]
+    pbgql["sicredi.points-balance-graphql<br/>userWallets · statement ·<br/>account · factors"]:::back
+  end
+
+  subgraph BACK["BACK — serviços (node/dotnet)"]
+    pbsvc["sicredi.points-balance-service<br/>(node + dotnet)"]:::back
+    brsvc["sicredi.bonus-recompra-service"]:::back
+    atp["sicredi.authentication-token-provider"]:::back
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    vbase[("VBase<br/>tokens + audit_logs")]:::storage
+    gchub[("VTEX Gift Card<br/>(bônus recompra)")]:::storage
+  end
+
+  subgraph EXT["EXTERNOS"]
+    apigw["APIs Sicredi<br/>(pontos/carteiras, api-gw + mTLS)"]:::external
+    sintegra["SintegraWS<br/>(consulta cadastral)"]:::external
+  end
+
+  pb_f --> pbgql
+  cb_f --> pbgql
+  br_f --> pbgql
+  bt_f --> pbgql
+  pb_f --> pbsvc
+  cb_f --> pbsvc
+  br_f --> brsvc
+  pbgql --> pbsvc
+  pbsvc --> atp
+  brsvc --> atp
+  brsvc --> gchub
+  atp --> apigw
+  pbsvc --> sintegra
+  pbsvc -.->|audit| vbase
+  brsvc -.->|audit| vbase
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

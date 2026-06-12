@@ -1,0 +1,36 @@
+flowchart LR
+  subgraph FRONT["FRONT — minha conta e pedidos (react/store)"]
+    vp_f["sicredi.vale-presente-my-account"]:::front
+    moc["sicredi.my-orders-custom"]:::front
+  end
+
+  subgraph BACK["BACK — serviços (node)"]
+    vpsvc["sicredi.vale-presente-my-account-service"]:::back
+    gcsvc["sicredi.giftcard-service<br/>(protocolo Gift Card Hub)"]:::back
+    cpsvc["sicredi.coupon-service"]:::back
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    chk[("Checkout / OMS")]:::storage
+    gchub[("Gift Card Hub VTEX")]:::storage
+    vbase[("VBase — audit_logs")]:::storage
+  end
+
+  subgraph EXT["EXTERNOS"]
+    mtls["API parceiro Sicredi (mTLS)"]:::external
+  end
+
+  vp_f --> vpsvc
+  moc --> vpsvc
+  chk --> gchub
+  gchub --> gcsvc
+  chk --> cpsvc
+  vpsvc --> chk
+  gcsvc --> mtls
+  gcsvc -.->|audit| vbase
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

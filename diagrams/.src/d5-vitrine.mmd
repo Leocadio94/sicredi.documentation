@@ -1,0 +1,42 @@
+flowchart LR
+  subgraph FRONT["FRONT — tema e blocos (react/store)"]
+    theme["sicredi.store-theme<br/>(tema — hub de blocos)"]:::front
+    sc["sicredi.store-components"]:::front
+    csi["sicredi.custom-store-image"]:::front
+    bdg_f["sicredi.badges (blocos)"]:::front
+    pa_f["sicredi.product-availability (blocos)"]:::front
+    rg_f["sicredi.regionalization"]:::front
+  end
+
+  subgraph BACK["BACK — graphql/node"]
+    bdg_b["sicredi.badges<br/>getBadges"]:::back
+    pa_b["sicredi.product-availability<br/>getProductAvailability"]:::back
+    rggql["sicredi.regionalization-graphql<br/>status"]:::back
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    catalog[("Catálogo / Intelligent Search")]:::storage
+    vbase[("VBase — configs de selos/estoque")]:::storage
+  end
+
+  edst["sicredi.edition-store<br/>(Edition App — instala o conjunto)"]:::admin
+
+  theme --> sc
+  theme --> csi
+  theme --> bdg_f
+  theme --> pa_f
+  theme --> rg_f
+  sc --> catalog
+  bdg_f --> bdg_b
+  pa_f --> pa_b
+  rg_f --> rggql
+  bdg_b --> vbase
+  pa_b --> vbase
+  bdg_b --> catalog
+  edst -.->|distribui apps| theme
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

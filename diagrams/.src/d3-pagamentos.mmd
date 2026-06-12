@@ -1,0 +1,43 @@
+flowchart LR
+  subgraph FRONT["FRONT — checkout e pedidos (react/pixel)"]
+    cui["sicredi.checkout-ui-settings"]:::front
+    paa["sicredi.payment-authorization-app"]:::front
+    hpm["sicredi.hide-payment-methods-pixel"]:::front
+    ppmo["sicredi.pixel-pix-my-orders"]:::front
+    lc["sicredi.login-components<br/>(aviso de Pix pendente)"]:::front
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    gw[("Gateway de pagamento VTEX")]:::storage
+    chk[("Checkout / OMS")]:::storage
+  end
+
+  subgraph BACK["BACK — conectores PPF + integração (node)"]
+    pixppf["sicredi.pix-payment-provider<br/>(protocolo PPF)"]:::back
+    pixsvc["sicredi.pix-service"]:::back
+    bippf["sicredi.bankInvoice-payment-provider<br/>(protocolo PPF)"]:::back
+    bisvc["sicredi.bankinvoice-service"]:::back
+  end
+
+  subgraph EXT["EXTERNOS"]
+    mtls["API parceiro Sicredi (mTLS)<br/>Pix QR Code · Boleto"]:::external
+  end
+
+  cui --> chk
+  paa --> gw
+  hpm --> chk
+  chk --> gw
+  gw --> pixppf
+  gw --> bippf
+  pixppf --> pixsvc
+  bippf --> bisvc
+  pixsvc --> mtls
+  bisvc --> mtls
+  lc --> pixsvc
+  ppmo --> chk
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

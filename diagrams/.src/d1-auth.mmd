@@ -1,0 +1,45 @@
+flowchart LR
+  subgraph FRONT["FRONT — UI de login (react/store)"]
+    lc["sicredi.login-components"]:::front
+    oap_f["sicredi.oauth-provider<br/>(UI /sicredi-login)"]:::front
+  end
+
+  subgraph BACK["BACK — serviços (node/graphql)"]
+    oap_b["sicredi.oauth-provider<br/>(endpoints OAuth)"]:::back
+    ls["sicredi.login-service<br/>(callback Segcorp + associação)"]:::back
+    atp["sicredi.authentication-token-provider<br/>(broker de tokens)"]:::back
+    vcnpj["sicredi.validate-cnpj-service"]:::back
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    vtexid[("VTEX ID")]:::storage
+    ca[("Master Data — CA/CL<br/>isSicrediAssociate")]:::storage
+    vbase[("VBase<br/>OTP, pré-sessão, tokens")]:::storage
+  end
+
+  subgraph EXT["EXTERNOS"]
+    segcorp["Segcorp (OAuth Sicredi)"]:::external
+    google["Google OAuth"]:::external
+    apigw["APIs Sicredi<br/>(api-gw / mTLS parceiro)"]:::external
+  end
+
+  oap_f --> oap_b
+  lc --> oap_b
+  lc --> ls
+  vtexid <--> oap_b
+  oap_b --> ca
+  oap_b --> vbase
+  oap_b --> google
+  segcorp --> ls
+  ls --> ca
+  ls --> apigw
+  atp --> vbase
+  atp --> apigw
+  vcnpj --> apigw
+  ls -.->|audit| vbase
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

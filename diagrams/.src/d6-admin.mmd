@@ -1,0 +1,33 @@
+flowchart LR
+  subgraph ADMIN["ADMIN — telas do painel (builder admin)"]
+    aal["sicredi.admin-audit-logs"]:::admin
+    atp_a["sicredi.authentication-token-provider<br/>(tela de segredos)"]:::admin
+    bdg_a["sicredi.badges (tela)"]:::admin
+    pa_a["sicredi.product-availability (tela)"]:::admin
+  end
+
+  subgraph BACK["BACK — endpoints audit-logs (node)"]
+    w1["abandoned-cart · login-service<br/>bonus-recompra · giftcard"]:::back
+    w2["pix-payment-provider · points-balance<br/>oauth-provider · validate-cnpj"]:::back
+    atp_b["authentication-token-provider<br/>(saveSecrets)"]:::back
+  end
+
+  subgraph VTEXCORE["VTEX CORE"]
+    vbase[("VBase — bucket audit_logs<br/>(1 por serviço, cap 100 FIFO)")]:::storage
+    vbsec[("VBase — segredos criptografados")]:::storage
+  end
+
+  aal -->|"GET /audit-logs (cookie admin)"| w1
+  aal -->|"GET /audit-logs (cookie admin)"| w2
+  atp_a --> atp_b
+  atp_b --> vbsec
+  w1 -.->|escrevem| vbase
+  w2 -.->|escrevem| vbase
+  bdg_a --> vbase
+  pa_a --> vbase
+
+  classDef front fill:#DEEBFF,stroke:#0747A6,color:#0747A6
+  classDef back fill:#E3FCEF,stroke:#006644,color:#006644
+  classDef admin fill:#FFF0B3,stroke:#FF8B00,color:#172B4D
+  classDef storage fill:#F4F5F7,stroke:#42526E,color:#42526E
+  classDef external fill:#FFEBE6,stroke:#BF2600,color:#BF2600,stroke-dasharray:5 5

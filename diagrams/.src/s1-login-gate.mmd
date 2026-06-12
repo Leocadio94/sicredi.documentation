@@ -1,0 +1,22 @@
+sequenceDiagram
+  actor U as Associado
+  participant ID as VTEX ID
+  participant OP as oauth-provider (node)
+  participant CA as Master Data (CA)
+  participant VB as VBase
+
+  U->>ID: Acessa o site / clica em entrar
+  ID->>OP: Redireciona para o provedor Custom OAuth
+  OP->>U: Tela /sicredi-login (OTP ou Google)
+  U->>OP: Informa e-mail (request-otp)
+  OP->>CA: Busca e-mail com isSicrediAssociate=true
+  alt Não é associado
+    OP-->>U: Acesso negado
+  else Associado
+    OP->>VB: Grava OTP com expiração
+    OP-->>U: Envia código por e-mail
+    U->>OP: Informa código (login)
+    OP->>VB: Valida OTP
+    OP-->>ID: Emite código/token OAuth
+    ID-->>U: Sessão criada — navegação liberada
+  end
