@@ -1,22 +1,32 @@
 sequenceDiagram
-  actor U as Associado
+  actor U as Usuário
   participant ID as VTEX ID
   participant OP as oauth-provider (node)
   participant CA as Master Data (CA)
   participant VB as VBase
 
   U->>ID: Acessa o site / clica em entrar
-  ID->>OP: Redireciona para o provedor Custom OAuth
-  OP->>U: Tela /sicredi-login (OTP ou Google)
+  ID->>OP: Redireciona para o provedor Custom OAuth (/authorize)
+  OP->>U: Tela de login /auth/login (OTP ou Google)
   U->>OP: Informa e-mail (request-otp)
+  OP->>VB: Grava OTP com expiração
+  OP-->>U: Envia código por e-mail (sempre responde 200 — anti-enumeração)
+  U->>OP: Informa código (login)
+  OP->>VB: Valida OTP (TTL + limite de tentativas)
   OP->>CA: Busca e-mail com isSicrediAssociate=true
-  alt Não é associado
-    OP-->>U: Acesso negado
-  else Associado
-    OP->>VB: Grava OTP com expiração
-    OP-->>U: Envia código por e-mail
-    U->>OP: Informa código (login)
-    OP->>VB: Valida OTP
+  alt Associado aprovado
     OP-->>ID: Emite código/token OAuth
     ID-->>U: Sessão criada — navegação liberada
+  else Não aprovado — pré-sessão (lobby)
+    OP->>VB: Cria pré-sessão (TTL 48h)
+    OP-->>U: Cookie sicredi_presession + redireciona para o cadastro Sicredi
+    loop Watcher no tema (poll a cada 45s)
+      U->>OP: GET /presession
+      OP->>CA: Re-checa isSicrediAssociate
+      OP-->>U: status pending | approved
+    end
+    Note over U,CA: Cadastro aprovado no app Sicredi
+    U->>OP: /authorize (cookie de pré-sessão válido)
+    OP-->>ID: Login silencioso — emite código e limpa a pré-sessão
+    ID-->>U: Sessão criada sem novo OTP
   end

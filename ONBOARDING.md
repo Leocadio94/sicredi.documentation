@@ -100,7 +100,7 @@ Padrões que se repetem em praticamente todos os serviços do projeto.
 
 Dois apps formam o núcleo de identidade:
 
-- **`sicredi.oauth-provider`** — provedor de identidade **Custom OAuth** plugado no VTEX ID. Renderiza a tela de login (rota `/sicredi-login` da loja), oferece **OTP por e-mail** ou **Google**, e só emite sessão para quem está na entidade `CA` com `isSicrediAssociate=true`. Estado intermediário (OTP, pré-sessão) vive no VBase com expiração por registro.
+- **`sicredi.oauth-provider`** — provedor de identidade **Custom OAuth** plugado no VTEX ID. Renderiza a tela de login (rota `/auth/login` da loja), oferece **OTP por e-mail** ou **Google**, e só emite sessão para quem está na entidade `CA` com `isSicrediAssociate=true`. Quem se autentica sem estar aprovado entra em **pré-sessão** (lobby com cookie opaco + registro no VBase, TTL 48h) e é logado silenciosamente quando a aprovação chega. Estado intermediário (OTP, código, token, pré-sessão) vive no VBase com expiração por registro.
 - **`sicredi.authentication-token-provider`** — *broker* de tokens OAuth para as **APIs corporativas da Sicredi** (`api-gw.sicredi.com.br` e variantes UAT). Os serviços de back-end dependem dele em vez de guardar credenciais próprias: ele criptografa os segredos (AES-128-CBC) e mantém o access token em cache no VBase com TTL igual ao `expires_in`. O roteamento de ambiente é interno (`sicrediqa` → UAT; demais → produção) — nenhum app deve fixar URL de ambiente.
 
 Complementam o fluxo: **`sicredi.login-service`** (callback OAuth do Segcorp — provedor de identidade corporativo Sicredi — e rotina de associação pós-login, gravando nas entidades `CA`/`CL`), e **`sicredi.login-components`** (UI de login no tema).
@@ -123,7 +123,7 @@ Vários serviços gravam logs de auditoria em um formato comum, e o app **`sicre
 
 - Bucket VBase **`audit_logs`**, separado do bucket principal de cada app.
 - Shape comum `AuditLogEntry { timestamp, user?, operation, operationType: 'success'|'warning'|'error'|'other'|'info', message?, details }`.
-- Array JSON do mais novo para o mais antigo, limitado a **100 entradas** (corte FIFO na inserção).
+- Array JSON do mais novo para o mais antigo, limitado a **100 entradas** (corte FIFO na inserção; o `oauth-provider` usa limite maior, de 500).
 - Cada serviço expõe `POST /audit-logs` **sem autenticação** (para os apps irmãos cruzarem escrita); `GET`/`DELETE` exigem admin.
 
 Serviços com endpoint de auditoria lidos pelo painel: `abandoned-cart-service`, `login-service`, `bonus-recompra-service`, `giftcard-service`, `pix-payment-provider`, `points-balance-service`, `oauth-provider` e `validate-cnpj-service`. **Qualquer mudança no shape/bucket/limite precisa ser replicada em todos eles e no leitor admin em conjunto.**

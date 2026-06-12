@@ -13,7 +13,7 @@ flowchart LR
   end
 
   subgraph VTEXCORE["VTEX CORE"]
-    vbase[("VBase — bucket audit_logs<br/>(1 por serviço, cap 100 FIFO)")]:::storage
+    vbase[("VBase — bucket audit_logs<br/>(1 por serviço, cap 100–500 FIFO)")]:::storage
     vbsec[("VBase — segredos criptografados")]:::storage
   end
 

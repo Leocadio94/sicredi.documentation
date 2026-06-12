@@ -12,7 +12,7 @@
 
 O domínio mais importante do projeto: é ele que garante que **só associados Sicredi** entram no site.
 
-**Como funciona:** o VTEX ID delega o login ao provedor customizado `sicredi.oauth-provider` (protocolo Custom OAuth). A tela de login (`/sicredi-login`) oferece dois caminhos — **código por e-mail (OTP)** ou **Google** — e nos dois o e-mail é validado contra a entidade `CA` do Master Data (`isSicrediAssociate=true`). Em paralelo, o `sicredi.login-service` cuida da **associação pós-login**: é o alvo do callback OAuth do **Segcorp** (provedor de identidade corporativo Sicredi), troca o código por token, lê os dados do associado no JWT, consulta as contas na API de parceiro (mTLS) e registra a associação nas entidades `CA`/`CL`.
+**Como funciona:** o VTEX ID delega o login ao provedor customizado `sicredi.oauth-provider` (protocolo Custom OAuth). A tela de login (`/auth/login`) oferece dois caminhos — **código por e-mail (OTP)** ou **Google** — e nos dois o e-mail é validado contra a entidade `CA` do Master Data (`isSicrediAssociate=true`). Quem se autentica mas **ainda não está aprovado** como associado não é simplesmente barrado: entra na **pré-sessão** (lobby) e, assim que a aprovação chega, é logado silenciosamente — ver o diagrama S1 abaixo. Em paralelo, o `sicredi.login-service` cuida da **associação pós-login**: é o alvo do callback OAuth do **Segcorp** (provedor de identidade corporativo Sicredi), troca o código por token, lê os dados do associado no JWT, consulta as contas na API de parceiro (mTLS) e registra a associação nas entidades `CA`/`CL`.
 
 O `sicredi.authentication-token-provider` é o **broker de tokens** das APIs corporativas Sicredi: nenhum serviço guarda credenciais próprias — todos pedem o token a ele (cache no VBase, segredos criptografados com AES-128-CBC, roteamento `sicrediqa`→UAT automático). A tela admin dele (cadastro de segredos) está no capítulo [D6](#d6--admin-e-auditoria).
 
@@ -39,7 +39,7 @@ O `sicredi.authentication-token-provider` é o **broker de tokens** das APIs cor
 flowchart LR
   subgraph FRONT["FRONT — UI de login (react/store)"]
     lc["sicredi.login-components"]:::front
-    oap_f["sicredi.oauth-provider<br/>(UI /sicredi-login)"]:::front
+    oap_f["sicredi.oauth-provider<br/>(UI /auth/login)"]:::front
   end
 
   subgraph BACK["BACK — serviços (node/graphql)"]
@@ -85,28 +85,40 @@ flowchart LR
 
 ### S1 — Sequência do gate de login (OTP por e-mail)
 
+O OTP é enviado para **qualquer e-mail bem formado** (design anti-enumeração: a resposta é sempre a mesma, com piso de tempo, para não revelar quem é associado). A decisão acontece **depois** do código correto: associado aprovado recebe a sessão; quem ainda não está aprovado na entidade `CA` entra na **pré-sessão** — um "lobby" (registro no VBase + cookie `HttpOnly` opaco, TTL 48h) que permite completar o cadastro Sicredi e, quando a aprovação chega, faz **login silencioso** sem novo OTP (o bloco `sicredi-presence-watcher`, plugado no header do tema, fica consultando `GET /presession`).
+
 ```mermaid
 sequenceDiagram
-  actor U as Associado
+  actor U as Usuário
   participant ID as VTEX ID
   participant OP as oauth-provider (node)
   participant CA as Master Data (CA)
   participant VB as VBase
 
   U->>ID: Acessa o site / clica em entrar
-  ID->>OP: Redireciona para o provedor Custom OAuth
-  OP->>U: Tela /sicredi-login (OTP ou Google)
+  ID->>OP: Redireciona para o provedor Custom OAuth (/authorize)
+  OP->>U: Tela de login /auth/login (OTP ou Google)
   U->>OP: Informa e-mail (request-otp)
+  OP->>VB: Grava OTP com expiração
+  OP-->>U: Envia código por e-mail (sempre responde 200 — anti-enumeração)
+  U->>OP: Informa código (login)
+  OP->>VB: Valida OTP (TTL + limite de tentativas)
   OP->>CA: Busca e-mail com isSicrediAssociate=true
-  alt Não é associado
-    OP-->>U: Acesso negado
-  else Associado
-    OP->>VB: Grava OTP com expiração
-    OP-->>U: Envia código por e-mail
-    U->>OP: Informa código (login)
-    OP->>VB: Valida OTP
+  alt Associado aprovado
     OP-->>ID: Emite código/token OAuth
     ID-->>U: Sessão criada — navegação liberada
+  else Não aprovado — pré-sessão (lobby)
+    OP->>VB: Cria pré-sessão (TTL 48h)
+    OP-->>U: Cookie sicredi_presession + redireciona para o cadastro Sicredi
+    loop Watcher no tema (poll a cada 45s)
+      U->>OP: GET /presession
+      OP->>CA: Re-checa isSicrediAssociate
+      OP-->>U: status pending | approved
+    end
+    Note over U,CA: Cadastro aprovado no app Sicredi
+    U->>OP: /authorize (cookie de pré-sessão válido)
+    OP-->>ID: Login silencioso — emite código e limpa a pré-sessão
+    ID-->>U: Sessão criada sem novo OTP
   end
 ```
 
@@ -417,7 +429,7 @@ flowchart LR
   end
 
   subgraph VTEXCORE["VTEX CORE"]
-    vbase[("VBase — bucket audit_logs<br/>(1 por serviço, cap 100 FIFO)")]:::storage
+    vbase[("VBase — bucket audit_logs<br/>(1 por serviço, cap 100–500 FIFO)")]:::storage
     vbsec[("VBase — segredos criptografados")]:::storage
   end
 
