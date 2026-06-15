@@ -1,0 +1,6 @@
+{
+  "_comment": "Override de métodos HTTP por rota quando o parser não conseguir inferir. Formato: { \"<vendor>.<app>\" ou \"<app>\": { \"<routeKey>\": [\"GET\", \"POST\"] } }. Ex.: \"sicredi.coupon-service\": { \"validateCoupon\": [\"POST\"] }",
+  "sicredi.coupon-service": {
+    "validateCoupon": ["POST"]
+  }
+}

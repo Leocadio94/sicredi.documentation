@@ -1,1 +1,8 @@
 .vscode
+node_modules/
+.vitepress/dist/
+.vitepress/cache/
+
+# Artefatos gerados por scripts/gen-openapi.mjs (regeráveis com `yarn gen:openapi`)
+public/apis/
+apis/
